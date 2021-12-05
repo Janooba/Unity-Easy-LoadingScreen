@@ -27,6 +27,8 @@ public class SceneLoaderUI : MonoBehaviour
     {
         ResetProgress();
 
+        canvasGroup.alpha = 0f;
+
         // Animate in
         DOTween.To(
             () => canvasGroup.alpha,
