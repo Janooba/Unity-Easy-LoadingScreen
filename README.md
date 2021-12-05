@@ -9,6 +9,8 @@ https://user-images.githubusercontent.com/17034238/144736576-8c59be97-2b81-4118-
 ## Setup
 SceneLoaderData.cs will automatically create it's Scriptable Object instance inside `Assets/Resources/` if it doesn't exist. This is where you set the reference to the Loading Screen prefab you want to use.
 
+## Making your own loading screen
+
 Loading Screen prefab must have a SceneLoaderUI component on it's top-level. Actual progress bar is optional but is set to an Image and uses the fill mode. The rest of the loading screen variables are set here as follows:
 
 `Canvas Group`: Canvas Group handles fading the loading screen in and out.
