@@ -23,7 +23,15 @@ Loading Screen prefab must have a SceneLoaderUI component on it's top-level. Act
 
 `Progress Update Speed`: How fast the progress bar moves to new values.
 
-`Progress`: Allows for setting the progress level manually via inspector.
+`Scene Name Text`: An optional text component to display the currently loading scene.
+
+`Scene Name TMPUGUI`: An optional text mesh pro UGUI element to display the currently loading scene.
+
+`Name Text Format`: Will be used to format your scene name for display using string.Format.
+
+`Progress`: Allows for viewing and setting the progress level manually via inspector.
+
+`Progress`: Allows for viewing and setting the display scene name via inspector.
 
 ## Usage
 Call `SceneLoaderManager.LoadScene` or `SceneLoaderManager.LoadScenes` to start the loading process.
