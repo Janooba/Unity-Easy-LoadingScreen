@@ -42,7 +42,7 @@ Parameters are as follows:
 
 `(string[]) Scene Name` : Array containing the string names of the scenes.
 
-`(bool) Is Additive` : Whether to load these new scenes additively. Should be set to true.
+`(bool) Is Additive` : Whether to load these new scenes additively. If false, the first scene will load as a Single, but the rest will be additive.
 
 `(Action) On Loaded Callback` : Will be called when everything is done loading.
 
