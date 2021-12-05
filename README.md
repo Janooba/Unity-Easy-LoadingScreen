@@ -31,7 +31,7 @@ Loading Screen prefab must have a SceneLoaderUI component on it's top-level. Act
 
 `Progress`: Allows for viewing and setting the progress level manually via inspector.
 
-`Progress`: Allows for viewing and setting the display scene name via inspector.
+`Scene Name`: Allows for viewing and setting the display scene name via inspector.
 
 ## Usage
 Call `SceneLoaderManager.LoadScene` or `SceneLoaderManager.LoadScenes` to start the loading process.
