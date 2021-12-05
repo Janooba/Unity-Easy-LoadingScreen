@@ -70,13 +70,14 @@ public class SceneLoaderManager : MonoBehaviour
             asyncOps[i].allowSceneActivation = false;
         }
 
-        Instance.ShowLoading(asyncOps, onLoadedCallback);
+        Instance.ShowLoading(sceneNames, asyncOps, onLoadedCallback);
     }
     #endregion
 
     // Non Static Stuff
     public SceneLoaderUI loaderUI;
 
+    private string[] sceneNames;
     private AsyncOperation[] toLoad;
     private Action onLoaded;
 
@@ -91,12 +92,13 @@ public class SceneLoaderManager : MonoBehaviour
     /// </summary>
     /// <param name="toLoad"></param>
     /// <param name="onLoaded"></param>
-    public void ShowLoading(AsyncOperation[] toLoad, Action onLoaded)
+    public void ShowLoading(string[] names, AsyncOperation[] toLoad, Action onLoaded)
     {
         isLoading = true;
         timeStarted = Time.realtimeSinceStartup;
         loaderUI.progress = 0;
 
+        this.sceneNames = names;
         this.toLoad = toLoad;
         this.onLoaded = onLoaded;
         this.minTime = loaderUI.minTimeToLoad;
@@ -117,13 +119,17 @@ public class SceneLoaderManager : MonoBehaviour
         if (isLoading)
         {
             float totalProgress = 0f;
+            string sceneLoading = "";
 
-            foreach (var operation in toLoad)
+            for (int i = 0; i < toLoad.Length; i++)
             {
-                totalProgress += operation.progress;
+                totalProgress += toLoad[i].progress;
+                if (string.IsNullOrEmpty(sceneLoading) && toLoad[i].progress < 1f)
+                    sceneLoading = sceneNames[i];
             }
 
             loaderUI.progress = totalProgress / toLoad.Length;
+            loaderUI.sceneName = sceneLoading;
 
             // Waits for min time and last one before activating it
             if (minTime < ElapsedTime && toLoad[toLoad.Length - 1].progress >= 0.9f)
