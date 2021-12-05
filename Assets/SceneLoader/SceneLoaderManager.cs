@@ -66,7 +66,7 @@ public class SceneLoaderManager : MonoBehaviour
 
         for (int i = 0; i < sceneNames.Length; i++)
         {
-            asyncOps[i] = SceneManager.LoadSceneAsync(sceneNames[i], isAdditive ? LoadSceneMode.Additive : LoadSceneMode.Single);
+            asyncOps[i] = SceneManager.LoadSceneAsync(sceneNames[i], isAdditive || i > 0 ? LoadSceneMode.Additive : LoadSceneMode.Single);
             asyncOps[i].allowSceneActivation = false;
         }
 
@@ -77,14 +77,11 @@ public class SceneLoaderManager : MonoBehaviour
     // Non Static Stuff
     public SceneLoaderUI loaderUI;
 
-    private AsyncOperation currentOperation;
-    private Stack<AsyncOperation> operationTasks;
     private AsyncOperation[] toLoad;
     private Action onLoaded;
 
     private bool isLoading = false;
     private float minTime = 0f;
-    private int tasksToLoad = 0;
 
     private float timeStarted = 0f;
     private float ElapsedTime => Time.realtimeSinceStartup - timeStarted;
@@ -104,50 +101,44 @@ public class SceneLoaderManager : MonoBehaviour
         this.onLoaded = onLoaded;
         this.minTime = loaderUI.minTimeToLoad;
 
-        loaderUI.FadeIn(StartLoading);
+        loaderUI.FadeIn(AllowActivation);
     }
 
-    private void StartLoading()
+    public void AllowActivation()
     {
-        operationTasks = new Stack<AsyncOperation>();
-        AsyncOperation[] operations = toLoad;
-        tasksToLoad = operations.Length;
-
-        for (int i = 0; i < operations.Length; i++)
-            operationTasks.Push(operations[i]);
-
-        StartNextOperation();
-    }
-
-    private void StartNextOperation()
-    {
-        if (operationTasks.Count == 0)
-            HideLoading();
-        else
-            currentOperation = operationTasks.Pop();
+        for (int i = 0; i < toLoad.Length; i++)
+        {
+            toLoad[i].allowSceneActivation = i < toLoad.Length - 1; // All but the last one
+        }
     }
 
     private void Update()
     {
-        if (isLoading && operationTasks != null)
+        if (isLoading)
         {
-            loaderUI.progress = currentOperation.progress / tasksToLoad;
+            float totalProgress = 0f;
 
-            if (currentOperation.isDone)
-                StartNextOperation();
-            else if (minTime < ElapsedTime)
-                currentOperation.allowSceneActivation = true;
+            foreach (var operation in toLoad)
+            {
+                totalProgress += operation.progress;
+            }
+
+            loaderUI.progress = totalProgress / toLoad.Length;
+
+            // Waits for min time and last one before activating it
+            if (minTime < ElapsedTime && toLoad[toLoad.Length - 1].progress >= 0.9f)
+            {
+                toLoad[toLoad.Length - 1].allowSceneActivation = true;
+                HideLoading();
+            }
         }
     }
 
     private void HideLoading()
     {
         loaderUI.progress = 1f;
-
         isLoading = false;
-        operationTasks = null;
         onLoaded?.Invoke();
-        tasksToLoad = 0;
 
         loaderUI.FadeOut();
     }
