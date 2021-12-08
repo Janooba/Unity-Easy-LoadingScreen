@@ -29,6 +29,15 @@ public class SceneLoaderUI : MonoBehaviour
     public TMPro.TextMeshProUGUI sceneNameTMPUGUI;
     [Tooltip("Optional. For when displaying the loading scene, formats the text using string.Format.")]
     public string nameTextFormat = "Loading Scene: {0}";
+
+    [Space]
+    [Tooltip("Optional. Text component for showing which scene is currently loading.")]
+    public Text percentText;
+    [Tooltip("Optional. TMP Text component for showing which scene is currently loading.")]
+    public TMPro.TextMeshProUGUI percentTMPUGUI;
+    [Tooltip("Optional. For when displaying the loading scene, formats the text using string.Format.")]
+    public string percentTextFormat = "{0:0}%";
+
     [Header("Debug Values")]
     [Range(0f, 1f)]
     public float progress = 0f;
@@ -71,6 +80,12 @@ public class SceneLoaderUI : MonoBehaviour
 
         if (sceneNameTMPUGUI)
             sceneNameTMPUGUI.text = string.Format(nameTextFormat, sceneName);
+
+        if (percentText)
+            percentText.text = string.Format(percentTextFormat, progress * 100f);
+
+        if (percentTMPUGUI)
+            percentTMPUGUI.text = string.Format(percentTextFormat, progress * 100f);
     }
 
     private void ResetProgress()

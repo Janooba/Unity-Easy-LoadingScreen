@@ -103,6 +103,7 @@ public class SceneLoaderManager : MonoBehaviour
             this.toLoad = toLoad;
             this.onLoaded = onLoaded;
             this.minTime = loaderUI.minTimeToLoad;
+            this.sceneNames = sceneNames;
         });
     }
 
