@@ -42,7 +42,7 @@ public class SceneLoaderManager : MonoBehaviour
     /// <param name="sceneName">String name of the scene</param>
     /// <param name="isAdditive">Whether to load this new scene additively</param>
     /// <param name="onLoadedCallback">Will be called when everything is done loading</param>
-    public static void LoadScene(string sceneName, bool isAdditive, Action onLoadedCallback = null)
+    public static void LoadScene(string sceneName, bool isAdditive = false, Action onLoadedCallback = null)
     {
         LoadScenes(new string[] { sceneName }, isAdditive, onLoadedCallback);
     }
@@ -54,7 +54,7 @@ public class SceneLoaderManager : MonoBehaviour
     /// <param name="sceneName">Array containing the string names of the scenes</param>
     /// <param name="isAdditive">Whether to load these new scenes additively. Should be set to true for multiple scenes.</param>
     /// <param name="onLoadedCallback">Will be called when everything is done loading</param>
-    public static void LoadScenes(string[] sceneNames, bool isAdditive, Action onLoadedCallback = null)
+    public static void LoadScenes(string[] sceneNames, bool isAdditive = false, Action onLoadedCallback = null)
     {
         if (!SceneLoaderData.Instance.loadingScreenPrefab)
         {
@@ -62,15 +62,7 @@ public class SceneLoaderManager : MonoBehaviour
             return;
         }
 
-        AsyncOperation[] asyncOps = new AsyncOperation[sceneNames.Length];
-
-        for (int i = 0; i < sceneNames.Length; i++)
-        {
-            asyncOps[i] = SceneManager.LoadSceneAsync(sceneNames[i], isAdditive || i > 0 ? LoadSceneMode.Additive : LoadSceneMode.Single);
-            asyncOps[i].allowSceneActivation = false;
-        }
-
-        Instance.ShowLoading(asyncOps, onLoadedCallback);
+        Instance.ShowLoading(sceneNames, isAdditive, onLoadedCallback);
     }
     #endregion
 
@@ -91,25 +83,26 @@ public class SceneLoaderManager : MonoBehaviour
     /// </summary>
     /// <param name="toLoad"></param>
     /// <param name="onLoaded"></param>
-    public void ShowLoading(AsyncOperation[] toLoad, Action onLoaded)
+    public void ShowLoading(string[] sceneNames, bool isAdditive, Action onLoaded)
     {
-        isLoading = true;
-        timeStarted = Time.realtimeSinceStartup;
-        loaderUI.progress = 0;
-
-        this.toLoad = toLoad;
-        this.onLoaded = onLoaded;
-        this.minTime = loaderUI.minTimeToLoad;
-
-        loaderUI.FadeIn(AllowActivation);
-    }
-
-    public void AllowActivation()
-    {
-        for (int i = 0; i < toLoad.Length; i++)
+        loaderUI.FadeIn(() =>
         {
-            toLoad[i].allowSceneActivation = i < toLoad.Length - 1; // All but the last one
-        }
+            AsyncOperation[] toLoad = new AsyncOperation[sceneNames.Length];
+
+            for (int i = 0; i < sceneNames.Length; i++)
+            {
+                toLoad[i] = SceneManager.LoadSceneAsync(sceneNames[i], isAdditive || i > 0 ? LoadSceneMode.Additive : LoadSceneMode.Single);
+                toLoad[i].allowSceneActivation = i < toLoad.Length - 1;
+            }
+
+            isLoading = true;
+            timeStarted = Time.realtimeSinceStartup;
+            loaderUI.progress = 0;
+
+            this.toLoad = toLoad;
+            this.onLoaded = onLoaded;
+            this.minTime = loaderUI.minTimeToLoad;
+        });
     }
 
     private void Update()
@@ -129,7 +122,8 @@ public class SceneLoaderManager : MonoBehaviour
             if (minTime < ElapsedTime && toLoad[toLoad.Length - 1].progress >= 0.9f)
             {
                 toLoad[toLoad.Length - 1].allowSceneActivation = true;
-                HideLoading();
+                // Invokes so that scene activation doesnt overtake the fade
+                toLoad[toLoad.Length - 1].completed += (operation) => { Invoke("HideLoading", 0.2f); };
             }
         }
     }
