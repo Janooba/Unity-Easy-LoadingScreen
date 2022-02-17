@@ -122,7 +122,6 @@ public class SceneLoaderManager : MonoBehaviour
             if (minTime < ElapsedTime && toLoad[toLoad.Length - 1].progress >= 0.9f)
             {
                 toLoad[toLoad.Length - 1].allowSceneActivation = true;
-                // Invokes so that scene activation doesnt overtake the fade
                 toLoad[toLoad.Length - 1].completed += (operation) => { Invoke("HideLoading", 0.2f); };
             }
         }
