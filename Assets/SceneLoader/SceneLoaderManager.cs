@@ -1,40 +1,61 @@
-using DG.Tweening;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class SceneLoaderManager : MonoBehaviour
 {
-    #region Static Stuff
-    private static SceneLoaderManager _instance;
-    public static SceneLoaderManager Instance
+#region Static Stuff
+
+    public static SceneLoaderManager Instance { get; private set; }
+
+    public static event Action OnStartLoad;
+    public static event Action OnLoaded;
+    
+    /// <summary>
+    /// Use StartCoroutine() to start the AsyncOperation, which will immediately call the callback the frame
+    /// the Scene has completed its loading.
+    /// </summary>
+    /// <param name="sceneName"></param>
+    /// <param name="isAdditive"></param>
+    /// <param name="callback"></param>
+    /// <returns></returns>
+    public static IEnumerator SimpleCallbackLoad(string sceneName, bool isAdditive, Action callback)
     {
-        get
+        if (!SceneManager.GetSceneByName(sceneName).IsValid())
         {
-            if (!_instance)
-                _instance = FindObjectOfType<SceneLoaderManager>();
-
-            if (!_instance)
-                CreateInstance();
-
-            return _instance;
+            Debug.LogWarning($"Scene name {sceneName} provided for SimpleLoad does not reflect any valid scenes in build");
+            yield break;
         }
-    }
 
-    // Creates the loading screen itself
-    private static void CreateInstance()
+        yield return SceneManager.LoadSceneAsync(sceneName, isAdditive ? LoadSceneMode.Additive : LoadSceneMode.Single);
+
+        callback?.Invoke();
+    }
+    
+    /// <summary>
+    /// Use StartCoroutine() to start the AsyncOperation, which will immediately call the callback the frame
+    /// the Scene has finished unloading.
+    /// </summary>
+    /// <param name="sceneName"></param>
+    /// <param name="callback"></param>
+    /// <returns></returns>
+    public static IEnumerator SimpleCallbackUnLoad(string sceneName, Action callback)
     {
-        _instance = new GameObject("Scene Load Manager").AddComponent<SceneLoaderManager>();
-        DontDestroyOnLoad(_instance.gameObject);
-        var canvas = Instantiate(SceneLoaderData.Instance.loadingScreenPrefab, _instance.transform);
-        _instance.loaderUI = canvas.GetComponent<SceneLoaderUI>();
+        if (!SceneManager.GetSceneByName(sceneName).IsValid())
+        {
+            Debug.LogWarning($"Scene name {sceneName} provided for SimpleUnLoad does not reflect any valid scenes in build");
+            yield break;
+        }
 
-        if (!_instance.loaderUI)
-            Debug.LogError("No SceneLoaderUI exists on the loader canvas prefab!");
+        // Safety measure so it is never attempted to unload a scene the same frame it has been loaded 
+        yield return null;
+        
+        yield return SceneManager.UnloadSceneAsync(sceneName, UnloadSceneOptions.UnloadAllEmbeddedSceneObjects);
+
+        callback?.Invoke();
     }
-
+    
     /// <summary>
     /// Loads the given scene with a loading screen. Ensure the
     /// SceneLoaderData in resources has a valid loading screen prefab.
@@ -51,24 +72,26 @@ public class SceneLoaderManager : MonoBehaviour
     /// Loads the given scenes with a loading screen. Ensure the
     /// SceneLoaderData in resources has a valid loading screen prefab.
     /// </summary>
-    /// <param name="sceneName">Array containing the string names of the scenes</param>
+    /// <param name="sceneNames">Array containing the string names of the scenes</param>
     /// <param name="isAdditive">Whether to load these new scenes additively. Should be set to true for multiple scenes.</param>
     /// <param name="onLoadedCallback">Will be called when everything is done loading</param>
     public static void LoadScenes(string[] sceneNames, bool isAdditive = false, Action onLoadedCallback = null)
     {
-        if (!SceneLoaderData.Instance.loadingScreenPrefab)
+        if (!Instance.loaderUI)
         {
-            Debug.LogError("No loading screen prefab set in the data object. See Resources/SceneLoaderData.");
+            Debug.LogError("No loading screen UI set.");
             return;
         }
-
+        OnStartLoad?.Invoke();
         Instance.ShowLoading(sceneNames, isAdditive, onLoadedCallback);
     }
-    #endregion
+    
+#endregion
 
     // Non Static Stuff
     public SceneLoaderUI loaderUI;
 
+    private string[] sceneNames;
     private AsyncOperation[] toLoad;
     private Action onLoaded;
 
@@ -77,6 +100,19 @@ public class SceneLoaderManager : MonoBehaviour
 
     private float timeStarted = 0f;
     private float ElapsedTime => Time.realtimeSinceStartup - timeStarted;
+
+    private void Awake()
+    {
+        if (Instance)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+    }
 
     /// <summary>
     /// Show the loading screen. You should probably use <see cref="SceneLoaderManager.LoadScene(string, bool, Action)"/>
@@ -102,6 +138,7 @@ public class SceneLoaderManager : MonoBehaviour
             this.toLoad = toLoad;
             this.onLoaded = onLoaded;
             this.minTime = loaderUI.minTimeToLoad;
+            this.sceneNames = sceneNames;
         });
     }
 
@@ -110,19 +147,27 @@ public class SceneLoaderManager : MonoBehaviour
         if (isLoading)
         {
             float totalProgress = 0f;
+            string sceneLoading = "";
 
-            foreach (var operation in toLoad)
+            for (int i = 0; i < toLoad.Length; i++)
             {
-                totalProgress += operation.progress;
+                totalProgress += toLoad[i].progress;
+                if (string.IsNullOrEmpty(sceneLoading) && toLoad[i].progress < 1f)
+                    sceneLoading = sceneNames[i];
             }
 
             loaderUI.progress = totalProgress / toLoad.Length;
+            loaderUI.sceneName = sceneLoading;
 
             // Waits for min time and last one before activating it
             if (minTime < ElapsedTime && toLoad[toLoad.Length - 1].progress >= 0.9f)
             {
                 toLoad[toLoad.Length - 1].allowSceneActivation = true;
-                toLoad[toLoad.Length - 1].completed += (operation) => { Invoke("HideLoading", 0.2f); };
+                
+                // Invokes so that scene activation doesnt overtake the fade
+                toLoad[toLoad.Length - 1].completed += (operation) => { Invoke(nameof(HideLoading), 0.2f); };
+                // this is here to avoid multiple invokes of hideloading
+                isLoading = false;
             }
         }
     }
@@ -130,9 +175,8 @@ public class SceneLoaderManager : MonoBehaviour
     private void HideLoading()
     {
         loaderUI.progress = 1f;
-        isLoading = false;
         onLoaded?.Invoke();
-
+        OnLoaded?.Invoke();
         loaderUI.FadeOut();
     }
 }

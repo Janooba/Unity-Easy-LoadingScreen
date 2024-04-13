@@ -1,4 +1,5 @@
 # Unity-Easy-LoadingScreen
+
 A simple loading screen system for Unity that supports loading multiple scenes at a time additively.
 Can be called from any scene without needing a specific manager component. The only setup required is to reference the loading screen prefab from the data Scriptable Object.
 
@@ -7,7 +8,8 @@ Check other branches for optional features.
 https://user-images.githubusercontent.com/17034238/144736576-8c59be97-2b81-4118-90b3-e464f5189157.mp4
 
 ## Setup
-SceneLoaderData.cs will automatically create it's Scriptable Object instance inside `Assets/Resources/` if it doesn't exist. This is where you set the reference to the Loading Screen prefab you want to use.
+
+Ensure your first scene contains the SceneLoaderManager component somewhere. Make the Loadscreen UI a child of this so that it does not get destroyed.
 
 ## Making your own loading screen
 
@@ -26,6 +28,7 @@ Loading Screen prefab must have a SceneLoaderUI component on it's top-level. Act
 `Progress`: Allows for setting the progress level manually via inspector.
 
 ## Usage
+
 Call `SceneLoaderManager.LoadScene` or `SceneLoaderManager.LoadScenes` to start the loading process.
 
 Parameters are as follows:
